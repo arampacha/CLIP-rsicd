@@ -134,3 +134,6 @@ dmypy.json
 
 _*.py
 _*.ipynb
+
+wandb/
+*.py.lock

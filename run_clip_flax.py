@@ -31,9 +31,11 @@ from pathlib import Path
 from typing import Callable, Optional
 import json
 import shutil
+import numpy as np
 
 import datasets
 from datasets import Dataset, load_dataset
+from flax import training
 from tqdm import tqdm
 
 import jax
@@ -45,6 +47,7 @@ from flax import jax_utils, traverse_util
 from flax.jax_utils import unreplicate
 from flax.training import train_state
 from flax.training.common_utils import get_metrics, onehot, shard, shard_prng_key
+from flax.training.checkpoints import save_checkpoint, restore_checkpoint
 from flax.serialization import to_bytes, from_bytes
 from transformers import (
     CONFIG_MAPPING,
@@ -62,8 +65,6 @@ from importlib.util import find_spec
 
 logger = logging.getLogger(__name__)
 
-MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
-
 
 @dataclass
 class ModelArguments:
@@ -77,10 +78,6 @@ class ModelArguments:
             "help": "The model checkpoint for weights initialization."
             "Don't set if you want to train a model from scratch."
         },
-    )
-    model_type: Optional[str] = field(
-        default=None,
-        metadata={"help": "If training from scratch, pass a model type from the list: " + ", ".join(MODEL_TYPES)},
     )
     config_name: Optional[str] = field(
         default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
@@ -114,6 +111,9 @@ class DataTrainingArguments:
     )
     dataset_config_name: Optional[str] = field(
         default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+    )
+    data_dir: Optional[str] = field(
+        default=None, metadata={"help": "Path to local folder containing data files."}
     )
     train_file: Optional[str] = field(default=None, metadata={"help": "The input training data file (a text file)."})
     validation_file: Optional[str] = field(
@@ -173,6 +173,82 @@ class DataTrainingArguments:
             if self.validation_file is not None:
                 extension = self.validation_file.split(".")[-1]
                 assert extension in ["csv", "json", "txt"], "`validation_file` should be a csv, a json or a txt file."
+
+
+# We use torchvision for faster image pre-processing.
+# We need to ensure faster processing speed as it can become a bottleneck on TPU
+# class Transform(torch.nn.Module):
+#     def __init__(self, image_size):
+#         super().__init__()
+#         self.transforms = torch.nn.Sequential(
+#             Resize([image_size], interpolation=InterpolationMode.BICUBIC),
+#             CenterCrop(image_size),
+#             ConvertImageDtype(torch.float),
+#             Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+#         )
+
+#     def forward(self, x: torch.Tensor) -> torch.Tensor:
+#         with torch.no_grad():
+#             x = self.transforms(x)
+#         return x
+
+# class ImageTextDataset(VisionDataset):
+#     """
+#     Dtaset for loading image-text data for tasks like CLIP training, Image Captioning.
+
+#     Args:
+#         root: (string): The root path where the dataset is stored
+#         file_path: (string): Path to the file containing the image_paths and associated captions.
+#             The expected format is jsonlines where each line is a json object containing to keys.
+#             `image_path`: The path to the image.
+#             `captions`: An `array` of captions.
+#         transform (callable, optional): A function/transform that  takes in an PIL image
+#             and returns a transformed version. E.g, ``transforms.ToTensor``
+#         target_transform (callable, optional): A function/transform that takes in the
+#             target and transforms it.
+#         transforms (callable, optional): A function/transform that takes input sample and its target as entry
+#             and returns a transformed version.
+#     """
+
+#     def __init__(
+#         self,
+#         root: str,
+#         file_path: str,
+#         captions_per_image=2,
+#         transform: Optional[Callable] = None,
+#         target_transform: Optional[Callable] = None,
+#         transforms: Optional[Callable] = None,
+#     ):
+#         super().__init__(root, transforms, transform, target_transform)
+
+#         with open(file_path, "r") as f:
+#             examples = [json.loads(line) for line in f.readlines()]
+
+#         self.captions = []
+#         self.image_paths = []
+
+#         for example in examples:
+#             self.captions.extend(example["captions"][:captions_per_image])
+#             self.image_paths.extend([example["image_path"]] * captions_per_image)
+
+#     def _load_image(self, idx: int):
+#         path = self.image_paths[idx]
+#         return read_image(path, mode=ImageReadMode.RGB)
+
+#     def _load_target(self, idx):
+#         return self.captions[idx]
+
+#     def __getitem__(self, index: int):
+#         image = self._load_image(index)
+#         target = self._load_target(index)
+
+#         if self.transforms is not None:
+#             image, target = self.transforms(image, target)
+
+#         return image, target
+
+#     def __len__(self) -> int:
+#         return len(self.captions)
 
 
 class TrainState(train_state.TrainState):
@@ -239,37 +315,37 @@ def mb_item(x):
     return x.item() if hasattr(x, "item") else x
 
 #checkpoint functions
-def save_checkpoint(model, save_dir, state, with_opt:bool=True, push_to_hub:bool=False):
-    state = jax_utils.unreplicate(state)
-    logger.info(f"SAVING CHECKPOINT IN {save_dir}...")
-    save_dir = f"{save_dir}/ckpt-{mb_item(state.step)-1}"
-    model.save_pretrained(
-        save_dir,
-        params=state.params,
-        push_to_hub=push_to_hub,
-        commit_message=f"Saving weights and logs at step {mb_item(state.step)-1}",
-    )
-    if with_opt:
-        with open(os.path.join(save_dir, "opt_state.msgpack"), "wb") as f:
-            f.write(to_bytes(state.opt_state))
-        with open(os.path.join(save_dir, "training_state.json"), "w") as f:
-            json.dump({"step": state.step.item()}, f)
-    logger.info("checkpoint saved")
+# def save_checkpoint(model, save_dir, state, with_opt:bool=True, push_to_hub:bool=False):
+#     state = jax_utils.unreplicate(state)
+#     logger.info(f"SAVING CHECKPOINT IN {save_dir}...")
+#     save_dir = f"{save_dir}/ckpt-{mb_item(state.step)-1}"
+#     model.save_pretrained(
+#         save_dir,
+#         params=state.params,
+#         push_to_hub=push_to_hub,
+#         commit_message=f"Saving weights and logs at step {mb_item(state.step)-1}",
+#     )
+#     if with_opt:
+#         with open(os.path.join(save_dir, "opt_state.msgpack"), "wb") as f:
+#             f.write(to_bytes(state.opt_state))
+#         with open(os.path.join(save_dir, "training_state.json"), "w") as f:
+#             json.dump({"step": state.step.item()}, f)
+#     logger.info("checkpoint saved")
         
-def restore_checkpoint(save_dir, state):
-    logger.info(f"RESTORING CHECKPOINT FROM {save_dir}...")
-    with open(os.path.join(save_dir, "flax_model.msgpack"), "rb") as f:
-        params = from_bytes(state.params, f.read())
+# def restore_checkpoint(save_dir, state):
+#     logger.info(f"RESTORING CHECKPOINT FROM {save_dir}...")
+#     with open(os.path.join(save_dir, "flax_model.msgpack"), "rb") as f:
+#         params = from_bytes(state.params, f.read())
 
-    with open(os.path.join(save_dir, "opt_state.msgpack"), "rb") as f:
-        opt_state = from_bytes(state.opt_state, f.read())
+#     with open(os.path.join(save_dir, "opt_state.msgpack"), "rb") as f:
+#         opt_state = from_bytes(state.opt_state, f.read())
 
-    with open(os.path.join(save_dir, "training_state.json"), "r") as f:
-        training_state = json.load(f)
-    step = training_state["step"]
+#     with open(os.path.join(save_dir, "training_state.json"), "r") as f:
+#         training_state = json.load(f)
+#     step = training_state["step"]
 
-    logger.info("checkpoint restored")
-    return state.replace(step=step, params=params, opt_state=opt_state), step
+#     logger.info("checkpoint restored")
+#     return state.replace(step=step, params=params, opt_state=opt_state), step
 
 def rotate_checkpoints(ckpt_dir:str, save_total_limit:int):
     "Removes older checkpoints so that `save_total_limit` checkpoints are kept"
@@ -336,7 +412,7 @@ def main():
     if data_args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         dataset = load_dataset(
-            data_args.dataset_name, data_args.dataset_config_name, cache_dir=model_args.cache_dir, keep_in_memory=False
+            data_args.dataset_name, data_args.dataset_config_name, data_dir=data_args.data_dir, cache_dir=model_args.cache_dir, keep_in_memory=False
         )
 
         if "validation" not in dataset.keys():
@@ -378,26 +454,28 @@ def main():
         config = CONFIG_MAPPING[model_args.model_type]()
         logger.warning("You are instantiating a new config instance from scratch.")
 
-    if model_args.tokenizer_name:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.tokenizer_name, cache_dir=model_args.cache_dir, use_fast=model_args.use_fast_tokenizer
-        )
-    elif model_args.model_name_or_path:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path, cache_dir=model_args.cache_dir, use_fast=model_args.use_fast_tokenizer
-        )
-    else:
-        raise ValueError(
-            "You are instantiating a new tokenizer from scratch. This is not supported by this script."
-            "You can do it from another script, save it, and load it from here, using --tokenizer_name."
-        )
+    # if model_args.tokenizer_name:
+    #     tokenizer = AutoTokenizer.from_pretrained(
+    #         model_args.tokenizer_name, cache_dir=model_args.cache_dir, use_fast=model_args.use_fast_tokenizer
+    #     )
+    # elif model_args.model_name_or_path:
+    #     tokenizer = AutoTokenizer.from_pretrained(
+    #         model_args.model_name_or_path, cache_dir=model_args.cache_dir, use_fast=model_args.use_fast_tokenizer
+    #     )
+    # else:
+    #     raise ValueError(
+    #         "You are instantiating a new tokenizer from scratch. This is not supported by this script."
+    #         "You can do it from another script, save it, and load it from here, using --tokenizer_name."
+    #     )
+
+    processor = CLIPProcessor.from_pretrained(model_args.model_name_or_path)
 
     if model_args.model_name_or_path:
-        model = FlaxAutoModelForCausalLM.from_pretrained(
+        model = FlaxCLIPModel.from_pretrained(
             model_args.model_name_or_path, config=config, seed=training_args.seed, dtype=getattr(jnp, model_args.dtype)
         )
     else:
-        model = FlaxAutoModelForCausalLM.from_config(
+        model = FlaxCLIPModel.from_config(
             config, seed=training_args.seed, dtype=getattr(jnp, model_args.dtype)
         )
 
@@ -412,81 +490,64 @@ def main():
     # since this will be pickled to avoid _LazyModule error in Hasher force logger loading before tokenize_function
     tok_logger = transformers.utils.logging.get_logger("transformers.tokenization_utils_base")
 
-    def tokenize_function(examples):
-        with CaptureLogger(tok_logger) as cl:
-            output = tokenizer(examples[text_column_name])
-        # clm input could be much much longer than block_size
-        if "Token indices sequence length is longer than the" in cl.out:
-            tok_logger.warning(
-                "^^^^^^^^^^^^^^^^ Please ignore the warning above - this long input will be chunked into smaller bits before being passed to the model."
-            )
-        return output
+    def preprocessing_function(examples):
+        images = []
+        captions = []
+        # TODO: figure out if we need to extend number of images to number of captions
+        for image, sentences in zip(examples['image'], examples['sentences']):
+            images.extend([np.array(image)]*len(sentences))
+            captions.extend(sentences)
 
-    tokenized_datasets = dataset.map(
-        tokenize_function,
+        return processor(text=captions, images=images, return_tensors="np", padding="max_length", max_length=64, truncation=True)
+
+
+    def data_loader(
+        rng: jax.random.PRNGKey, dataset: Dataset, batch_size: int, shuffle: bool = False
+    ):
+        """
+        Returns batches of size `batch_size` from truncated `dataset`, sharded over all local devices.
+        Shuffle batches if `shuffle` is `True`.
+        """
+        steps_per_epoch = len(dataset) // batch_size
+
+        if shuffle:
+            batch_idx = jax.random.permutation(rng, len(dataset))
+        else:
+            batch_idx = jnp.arange(len(dataset))
+
+        batch_idx = batch_idx[: steps_per_epoch * batch_size]  # Skip incomplete batch.
+        batch_idx = batch_idx.reshape((steps_per_epoch, batch_size))
+
+        for idx in batch_idx:
+            batch = dataset[idx]
+            batch = {k: jnp.array(v) for k, v in batch.items()}
+            batch = shard(batch)
+            yield batch
+    
+    preprocessed_datasets = dataset.map(
+        preprocessing_function,
         batched=True,
+        batch_size=100,
         num_proc=data_args.preprocessing_num_workers,
         remove_columns=column_names,
         load_from_cache_file=not data_args.overwrite_cache,
     )
 
-    if data_args.block_size is None:
-        block_size = tokenizer.model_max_length
-        if block_size > config.max_position_embeddings:
-            logger.warning(
-                f"The tokenizer picked seems to have a very large `model_max_length` ({tokenizer.model_max_length}). "
-                "Picking 1024 instead. You can change that default value by passing --block_size xxx."
-            )
-            block_size = 1024
-    else:
-        if data_args.block_size > tokenizer.model_max_length:
-            logger.warning(
-                f"The block_size passed ({data_args.block_size}) is larger than the maximum length for the model"
-                f"({tokenizer.model_max_length}). Using block_size={tokenizer.model_max_length}."
-            )
-        block_size = min(data_args.block_size, tokenizer.model_max_length)
-
-    # Main data processing function that will concatenate all texts from our dataset and generate chunks of block_size.
-    def group_texts(examples):
-        # Concatenate all texts.
-        concatenated_examples = {k: sum(examples[k], []) for k in examples.keys()}
-        total_length = len(concatenated_examples[list(examples.keys())[0]])
-        # We drop the small remainder, we could add padding if the model supported it instead of this drop, you can
-        # customize this part to your needs.
-        total_length = (total_length // block_size) * block_size
-        # Split by chunks of max_len.
-        result = {
-            k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
-            for k, t in concatenated_examples.items()
-        }
-        result["labels"] = result["input_ids"].copy()
-        return result
-
-    # Note that with `batched=True`, this map processes 1,000 texts together, so group_texts throws away a remainder
-    # for each of those groups of 1,000 texts. You can adjust that batch_size here but a higher value might be slower
-    # to preprocess.
-    #
     # To speed up this part, we use multiprocessing. See the documentation of the map method for more information:
     # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.map
 
-    lm_datasets = tokenized_datasets.map(
-        group_texts,
-        batched=True,
-        num_proc=data_args.preprocessing_num_workers,
-        load_from_cache_file=not data_args.overwrite_cache,
-    )
 
     if training_args.do_train:
-        if "train" not in tokenized_datasets:
+        if "train" not in preprocessed_datasets:
             raise ValueError("--do_train requires a train dataset")
-        train_dataset = lm_datasets["train"]
+        train_dataset = preprocessed_datasets["train"]
         if data_args.max_train_samples is not None:
             train_dataset = train_dataset.select(range(data_args.max_train_samples))
 
     if training_args.do_eval:
-        if "validation" not in tokenized_datasets:
+        if "validation" not in preprocessed_datasets:
             raise ValueError("--do_eval requires a validation dataset")
-        eval_dataset = lm_datasets["validation"]
+        eval_dataset = preprocessed_datasets["validation"]
         if data_args.max_eval_samples is not None:
             eval_dataset = eval_dataset.select(range(data_args.max_eval_samples))
 
@@ -514,8 +575,9 @@ def main():
         try:
             import wandb
             wandb.init(
+                name=training_args.run_name,
                 entity="wandb", 
-                project="hf-flax-gpt-neo-copilot",
+                project="hf-flax-clip-rsicd",
                 sync_tensorboard=True
             )
             wandb.config.update(training_args)
@@ -585,24 +647,28 @@ def main():
     state = TrainState.create(apply_fn=model.__call__, params=model.params, tx=optimizer, dropout_rng=dropout_rng)
     
     if training_args.resume_from_checkpoint:
-        state, resume_step = restore_checkpoint(training_args.resume_from_checkpoint, state)
+        state = restore_checkpoint(training_args.resume_from_checkpoint, state)
+        resume_step = mb_item(state.step)
     else:
         resume_step = 0
 
-    def loss_fn(logits, labels):
-        shift_logits = logits[..., :-1, :]
-        shift_labels = labels[..., 1:]
-        loss = optax.softmax_cross_entropy(shift_logits, onehot(shift_labels, shift_logits.shape[-1]))
-        return loss.mean()
+    def cross_entropy(logits, axis):
+        logprobs = jax.nn.log_softmax(logits, axis=axis)
+        nll = jnp.diag(logprobs)
+        ce = -jnp.mean(nll)
+        return ce
+
+    def clip_loss(similarity):
+        loss = (cross_entropy(similarity, axis=0) + cross_entropy(similarity, axis=1)) / 2
+        return loss
 
     # Define gradient update step fn
     def train_step(state, batch):
         dropout_rng, new_dropout_rng = jax.random.split(state.dropout_rng)
 
         def compute_loss(params):
-            labels = batch.pop("labels")
             logits = state.apply_fn(**batch, params=params, dropout_rng=dropout_rng, train=True)[0]
-            loss = loss_fn(logits, labels)
+            loss = clip_loss(logits)
             return loss
 
         grad_fn = jax.value_and_grad(compute_loss)
@@ -620,7 +686,7 @@ def main():
     def eval_step(params, batch):
         labels = batch.pop("labels")
         logits = model(**batch, params=params, train=False)[0]
-        loss = loss_fn(logits, labels)
+        loss = clip_loss(logits)
 
         # summarize metrics
         metrics = {"loss": loss}
@@ -646,7 +712,6 @@ def main():
 
     train_time = 0
     train_metrics = []
-    # TODO: figure out training duration
     epochs = tqdm(range(num_epochs), desc=f"Epoch ... (1/{num_epochs})", position=0)
     for epoch in epochs:
         # ======================== Training ================================
@@ -726,12 +791,27 @@ def main():
             if cur_step % (training_args.save_steps * grad_accum_steps) == 0 and cur_step > 0:
                 # save checkpoint after each epoch and push checkpoint to the hub
                 if jax.process_index() == 0:
-                    save_checkpoint(model, training_args.output_dir, state, push_to_hub=training_args.push_to_hub)
+                    save_dir = f"{training_args.output_dir}/ckpt-{mb_item(state.step)-1}"
+                    model.save_pretrained(
+                        save_dir,
+                        params=state.params,
+                        push_to_hub=False, # training_args.push_to_hub, # we don't push intermediate steps
+                        commit_message=f"Saving weights and logs at step {mb_item(state.step)-1}",
+                        repo_name_or_path=training_args.output_dir
+                    )
+                    if model_args.save_optimizer:
+                        save_checkpoint(training_args.output_dir, jax_utils.unreplicate(state), cur_step, keep=training_args.save_total_limit, overwrite=True)
                     if training_args.save_total_limit is not None:
                         rotate_checkpoints(training_args.output_dir, training_args.save_total_limit)
     
     # save model after training is over
-    save_checkpoint(model, training_args.output_dir, state, with_opt=False, push_to_hub=training_args.push_to_hub)
+    model.save_pretrained(
+        training_args.output_dir,
+        params=state.params,
+        push_to_hub=training_args.push_to_hub,
+        commit_message=f"Saving weights and logs at step {mb_item(state.step)-1}",
+        repo_name_or_path=training_args.output_dir
+    )
 
 
 
