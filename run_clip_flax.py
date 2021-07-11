@@ -98,6 +98,14 @@ class ModelArguments:
             "help": "Floating-point format in which the model weights should be initialized and trained. Choose one of `[float32, float16, bfloat16]`."
         },
     )
+    save_optimizer: Optional[bool] = field(
+        default=True,
+        metadata={"help": "Whether to store full train state including optimizer."},
+    )
+    repo_path_or_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the modelhub repo directory"},
+    )
 
 
 @dataclass
@@ -684,7 +692,6 @@ def main():
 
     # Define eval fn
     def eval_step(params, batch):
-        labels = batch.pop("labels")
         logits = model(**batch, params=params, train=False)[0]
         loss = clip_loss(logits)
 
@@ -788,28 +795,27 @@ def main():
                     _metrics = {f"eval_{k}":mb_item(v) for k, v in eval_metrics.items()}
                     wandb.log({"eval_step":cur_step, **_metrics})
 
-            if cur_step % (training_args.save_steps * grad_accum_steps) == 0 and cur_step > 0:
-                # save checkpoint after each epoch and push checkpoint to the hub
-                if jax.process_index() == 0:
-                    save_dir = f"{training_args.output_dir}/ckpt-{mb_item(state.step)-1}"
-                    model.save_pretrained(
-                        save_dir,
-                        params=state.params,
-                        push_to_hub=False, # training_args.push_to_hub, # we don't push intermediate steps
-                        commit_message=f"Saving weights and logs at step {mb_item(state.step)-1}",
-                        repo_name_or_path=training_args.output_dir
-                    )
-                    if model_args.save_optimizer:
-                        save_checkpoint(training_args.output_dir, jax_utils.unreplicate(state), cur_step, keep=training_args.save_total_limit, overwrite=True)
-                    if training_args.save_total_limit is not None:
-                        rotate_checkpoints(training_args.output_dir, training_args.save_total_limit)
+        # save checkpoint after each epoch
+        if jax.process_index() == 0:
+            save_dir = f"{training_args.output_dir}/ckpt-{epoch}"
+            model.save_pretrained(
+                save_dir,
+                params=state.params,
+                push_to_hub=False, # training_args.push_to_hub, # we don't push intermediate steps
+                commit_message=f"Saving weights and logs at epoch {epoch}",
+                repo_name_or_path=training_args.output_dir
+            )
+            if model_args.save_optimizer:
+                save_checkpoint(training_args.output_dir, jax_utils.unreplicate(state), cur_step, keep=training_args.save_total_limit, overwrite=True)
+            if training_args.save_total_limit is not None:
+                rotate_checkpoints(training_args.output_dir, training_args.save_total_limit)
     
     # save model after training is over
     model.save_pretrained(
         training_args.output_dir,
         params=state.params,
         push_to_hub=training_args.push_to_hub,
-        commit_message=f"Saving weights and logs at step {mb_item(state.step)-1}",
+        commit_message=f"Saving weights and logs at step {cur_step}",
         repo_name_or_path=training_args.output_dir
     )
 
