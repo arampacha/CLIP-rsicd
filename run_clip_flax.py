@@ -38,6 +38,9 @@ from datasets import Dataset, load_dataset
 from flax import training
 from tqdm import tqdm
 
+import torchvision
+from torchvision import transforms, utils
+
 import jax
 import jax.profiler
 import jax.numpy as jnp
@@ -169,7 +172,11 @@ class DataTrainingArguments:
     text_column_name: Optional[str] = field(
             default='text',
             metadata={"help": "Column containing main text data."},
-        )
+    )
+    augment_images: Optional[bool] = field(
+        default=False,
+        metadata={ "help": "Augment Images" }
+    )
 
     def __post_init__(self):
         if self.dataset_name is None and self.train_file is None and self.validation_file is None:
@@ -495,6 +502,20 @@ def main():
         column_names = dataset["validation"].column_names
     text_column_name = data_args.text_column_name if data_args.text_column_name in column_names else column_names[0]
 
+    # if image augmentation should happen, then declare the transform
+    # TODO: size=180 in RandomCrop and RandomResizedCrop because its 80% of 224
+    # (width and height of image), needs more robust handling later.
+    image_augmenter = None
+    if data_args.augment_images:
+        image_augmenter = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomCrop(180),
+            transforms.ColorJitter(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomResizedCrop(180, scale=(0.8, 1.2), ratio=(1.0, 1.0)),
+        ])
+
     # since this will be pickled to avoid _LazyModule error in Hasher force logger loading before tokenize_function
     tok_logger = transformers.utils.logging.get_logger("transformers.tokenization_utils_base")
 
@@ -503,7 +524,11 @@ def main():
         captions = []
         # TODO: figure out if we need to extend number of images to number of captions
         for image, sentences in zip(examples['image'], examples['sentences']):
-            images.extend([np.array(image)]*len(sentences))
+            if data_args.augment_images:
+                image = image_augmenter(np.array(image, dtype=np.uint8))
+            image = np.array(image)
+            images.extend([image] * len(sentences))
+            # images.extend([np.array(image)]*len(sentences))
             captions.extend(sentences)
 
         return processor(text=captions, images=images, return_tensors="np", padding="max_length", max_length=64, truncation=True)

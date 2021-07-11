@@ -29,5 +29,6 @@
     --max_train_samples 10240 \
     --report_to wandb \
     --run_name="testing-bs-128" \
+    # --augment_images \
     # --resume_from_checkpoint $HOME/gpt-neo-125M-code-clippy/ckpt_201 \
     # --max_eval_samples="1000"
