@@ -477,7 +477,7 @@ def main():
     preprocess = Transform(config.vision_config.image_size, data_args.augment_images)
     preprocess = torch.jit.script(preprocess)
 
-    eval_preprocess = Transform(config.vision_config.image_size, data_args.augment_images)
+    eval_preprocess = Transform(config.vision_config.image_size, False)
     eval_preprocess = torch.jit.script(eval_preprocess)
 
     # Initialize the image-text dataset
