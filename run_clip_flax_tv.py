@@ -475,8 +475,10 @@ def main():
     # Initialize torchvision transforms and jit them for faster processing
     # preprocess = Transform(config.vision_config.image_size)
     preprocess = Transform(config.vision_config.image_size, data_args.augment_images)
-    
     preprocess = torch.jit.script(preprocess)
+
+    eval_preprocess = Transform(config.vision_config.image_size, data_args.augment_images)
+    eval_preprocess = torch.jit.script(eval_preprocess)
 
     # Initialize the image-text dataset
     train_dataset = ImageTextDataset(
@@ -490,7 +492,7 @@ def main():
         data_args.data_dir,
         data_args.validation_file,
         captions_per_image=1,
-        transform=preprocess,
+        transform=eval_preprocess,
     )
 
     # Enable tensorboard only on the master node
