@@ -583,8 +583,9 @@ def main():
     state = TrainState.create(apply_fn=model.__call__, params=model.params, tx=optimizer, dropout_rng=dropout_rng)
     
     if training_args.resume_from_checkpoint is not None:
-        state = restore_checkpoint(training_args.resume_from_checkpoint, state)
+        state = restore_checkpoint(training_args.resume_from_checkpoint, None)
         resume_step = mb_item(state.step)
+        logger.info(f"Resuming from step {resume_step}")
     else:
         resume_step = 0
 
@@ -650,6 +651,9 @@ def main():
     epochs = tqdm(range(num_epochs), desc=f"Epoch ... (1/{num_epochs})", position=0)
     for epoch in epochs:
         # ======================== Training ================================
+        if epoch < resume_step // steps_per_epoch:
+            continue
+
         train_start = time.time()
 
         # Create sampling rng
@@ -761,6 +765,7 @@ def main():
                 save_checkpoint(training_args.output_dir, jax_utils.unreplicate(state), jax_utils.unreplicate(state.step), keep=training_args.save_total_limit, overwrite=True)
             if training_args.save_total_limit is not None:
                 rotate_checkpoints(training_args.output_dir, training_args.save_total_limit)
+        # if epoch > 1: break
     # save model after training is over
     model.save_pretrained(
         training_args.output_dir,
@@ -769,8 +774,6 @@ def main():
         commit_message=f"Saving weights and logs at step {cur_step}",
         repo_name_or_path=training_args.output_dir
     )
-
-
 
 
 if __name__ == "__main__":
