@@ -79,6 +79,8 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
     is_tensorboard_available,
+    IntervalStrategy
+    
 )
 from transformers.testing_utils import CaptureLogger
 
@@ -198,6 +200,10 @@ class DataTrainingArguments:
     augment_images: Optional[bool] = field(
         default=False,
         metadata={ "help": "Augment input training images" }
+    )
+    captions_per_image: Optional[int] = field(
+        default=5,
+        metadata={"help": "Number of captions per image to use when creating train dataset."},
     )
 
     def __post_init__(self):
@@ -484,7 +490,7 @@ def main():
     train_dataset = ImageTextDataset(
         data_args.data_dir,
         data_args.train_file,
-        captions_per_image=2,
+        captions_per_image=data_args.captions_per_image,
         transform=preprocess,
     )
 
@@ -731,35 +737,35 @@ def main():
 
                 train_metrics = []
 
-            # if (cur_step % (training_args.eval_steps * grad_accum_steps) == 0 and
-            #     cur_step > 0 and 
-            #     training_args.eval_strategy == "steps"):
-            #     # ======================== Evaluating ==============================
-            #     eval_metrics = []
-            #     eval_steps = len(eval_dataset) // eval_batch_size
-            #     eval_iter = iter(eval_loader)
-            #     for batch in tqdm(eval_loader, desc="Evaluating...", position=2, leave=False):
-            #         # Model forward
-            #         batch = shard(make_batch(batch))
-            #         metrics = p_eval_step(state.params, batch)
-            #         eval_metrics.append(metrics)
+            if (cur_step % (training_args.eval_steps * grad_accum_steps) == 0 and
+                cur_step > 0 and 
+                training_args.eval_strategy == IntervalStrategy.STEPS):
+                # ======================== Evaluating ==============================
+                eval_metrics = []
+                eval_steps = len(eval_dataset) // eval_batch_size
+                eval_iter = iter(eval_loader)
+                for batch in tqdm(eval_loader, desc="Evaluating...", position=2, leave=False):
+                    # Model forward
+                    batch = shard(make_batch(batch))
+                    metrics = p_eval_step(state.params, batch)
+                    eval_metrics.append(metrics)
 
-            #     # normalize eval metrics
-            #     eval_metrics = get_metrics(eval_metrics)
-            #     eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
+                # normalize eval metrics
+                eval_metrics = get_metrics(eval_metrics)
+                eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
 
-            #     # Print metrics and update progress bar
-            #     desc = f"Step... ({cur_step} | Eval Loss: {eval_metrics['loss']})"
-            #     epochs.write(desc)
-            #     epochs.desc = desc
+                # Print metrics and update progress bar
+                desc = f"Step... ({cur_step} | Eval Loss: {eval_metrics['loss']})"
+                epochs.write(desc)
+                epochs.desc = desc
 
-            #     # Save metrics
-            #     if has_tensorboard and jax.process_index() == 0:
-            #         # cur_step = epoch * (len(train_dataset) // train_batch_size)
-            #         write_eval_metric(summary_writer, eval_metrics, cur_step)
-            #     if has_wandb and jax.process_index() == 0 and ("wandb" in training_args.report_to):
-            #         _metrics = {f"eval_{k}":mb_item(v) for k, v in eval_metrics.items()}
-            #         wandb.log({"eval_step":cur_step, **_metrics})
+                # Save metrics
+                if has_tensorboard and jax.process_index() == 0:
+                    # cur_step = epoch * (len(train_dataset) // train_batch_size)
+                    write_eval_metric(summary_writer, eval_metrics, cur_step)
+                if has_wandb and jax.process_index() == 0 and ("wandb" in training_args.report_to):
+                    _metrics = {f"eval_{k}":mb_item(v) for k, v in eval_metrics.items()}
+                    wandb.log({"eval_step":cur_step, **_metrics})
 
         # we can add an argument to select eval strategy; for now its done every epoch
         if True:
@@ -790,7 +796,7 @@ def main():
                 wandb.log({"eval_step":cur_step, **_metrics})
 
         # save checkpoint after each epoch
-        if jax.process_index() == 0 and training_args.save_strategy == "epoch":
+        if jax.process_index() == 0 and training_args.save_strategy == IntervalStrategy.EPOCH:
             save_dir = f"{training_args.output_dir}/ckpt-{epoch}"
             model.save_pretrained(
                 save_dir,
