@@ -30,8 +30,8 @@
     --report_to all \
     --run_name="testing-resume" \
     --save_strategy epoch \
-    --save_optimizer="True" \
+    --save_optimizer="False" \
     --captions_per_image 1 \
+    --resume_from_checkpoint $HOME/models/clip-rsicd/adam \
     # --adafactor \
-    # --resume_from_checkpoint $HOME/models/clip-rsicd \
     # --max_eval_samples="1000"
