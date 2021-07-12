@@ -568,11 +568,11 @@ def main():
         # We use the default parameters here to initialize adafactor,
         # For more details about the parameters please check https://github.com/deepmind/optax/blob/ed02befef9bf81cbbf236be3d2b0e032e9ed4a40/optax/_src/alias.py#L74
         optimizer = optax.adafactor(
-            1e-4#learning_rate=linear_decay_lr_schedule_fn,
+            learning_rate=linear_decay_lr_schedule_fn,
         )
     else:
         optimizer = optax.adamw(
-            1e-4, #learning_rate=linear_decay_lr_schedule_fn,
+            learning_rate=linear_decay_lr_schedule_fn,
             b1=training_args.adam_beta1,
             b2=training_args.adam_beta2,
             eps=training_args.adam_epsilon,

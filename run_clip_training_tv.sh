@@ -11,7 +11,7 @@
     --per_device_train_batch_size="128" \
     --per_device_eval_batch_size="128" \
     --preprocessing_num_workers="16" \
-    --learning_rate="2e-5" \
+    --learning_rate="3e-4" \
     --adafactor \
     --warmup_steps="20" \
     --adam_beta1="0.9" \
