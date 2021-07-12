@@ -42,7 +42,21 @@ from tqdm import tqdm
 import torch
 from torchvision.datasets import VisionDataset
 from torchvision.io import ImageReadMode, read_image
-from torchvision.transforms import CenterCrop, ConvertImageDtype, Normalize, Resize
+from torchvision.transforms import (
+    # added for image augmentation
+    ToPILImage,
+    RandomCrop,
+    ColorJitter,
+    RandomHorizontalFlip,
+    RandomVerticalFlip,
+    RandomResizedCrop,
+    ToTensor,
+    # /added for image augmentation
+    CenterCrop, 
+    ConvertImageDtype, 
+    Normalize, 
+    Resize
+)
 from torchvision.transforms.functional import InterpolationMode
 
 import jax
@@ -180,7 +194,11 @@ class DataTrainingArguments:
     text_column_name: Optional[str] = field(
             default='text',
             metadata={"help": "Column containing main text data."},
-        )
+    )
+    augment_images: Optional[bool] = field(
+        default=False,
+        metadata={ "help": "Augment input training images" }
+    )
 
     def __post_init__(self):
         if self.dataset_name is None and self.train_file is None and self.validation_file is None:
@@ -197,14 +215,30 @@ class DataTrainingArguments:
 # We use torchvision for faster image pre-processing.
 # We need to ensure faster processing speed as it can become a bottleneck on TPU
 class Transform(torch.nn.Module):
-    def __init__(self, image_size):
+    def __init__(self, image_size, augment_images):
         super().__init__()
-        self.transforms = torch.nn.Sequential(
-            Resize([image_size], interpolation=InterpolationMode.BICUBIC),
-            CenterCrop(image_size),
-            ConvertImageDtype(torch.float),
-            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
-        )
+        if augment_images:
+            crop_size = int(image_size * 0.8)
+            self.transforms = torch.nn.Sequential(
+                # image augmentation transforms
+                RandomCrop(crop_size),
+                ColorJitter(),
+                RandomHorizontalFlip(),
+                RandomVerticalFlip(),
+                RandomResizedCrop(crop_size, scale=(0.8, 1.2), ratio=(1.0, 1.0)),
+                # /image augmentation transforms
+                Resize([image_size], interpolation=InterpolationMode.BICUBIC),
+                CenterCrop(image_size),
+                ConvertImageDtype(torch.float),
+                Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+            )
+        else:
+            self.transforms = torch.nn.Sequential(
+                Resize([image_size], interpolation=InterpolationMode.BICUBIC),
+                CenterCrop(image_size),
+                ConvertImageDtype(torch.float),
+                Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
@@ -439,8 +473,12 @@ def main():
 
     config = model.config
     # Initialize torchvision transforms and jit them for faster processing
-    preprocess = Transform(config.vision_config.image_size)
+    # preprocess = Transform(config.vision_config.image_size)
+    preprocess = Transform(config.vision_config.image_size, data_args.augment_images)
     preprocess = torch.jit.script(preprocess)
+
+    eval_preprocess = Transform(config.vision_config.image_size, False)
+    eval_preprocess = torch.jit.script(eval_preprocess)
 
     # Initialize the image-text dataset
     train_dataset = ImageTextDataset(
@@ -454,7 +492,7 @@ def main():
         data_args.data_dir,
         data_args.validation_file,
         captions_per_image=1,
-        transform=preprocess,
+        transform=eval_preprocess,
     )
 
     # Enable tensorboard only on the master node

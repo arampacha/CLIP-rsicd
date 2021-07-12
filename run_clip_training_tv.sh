@@ -27,10 +27,11 @@
     --save_steps="200" \
     --save_total_limit 2 \
     --gradient_accumulation_steps 1 \
-    --max_train_samples 10240 \
     --report_to all \
     --run_name="testing-bs-128" \
     --save_strategy epoch \
     --save_optimizer="False" \
+    # --augment_images \
     # --resume_from_checkpoint $HOME/gpt-neo-125M-code-clippy/ckpt_201 \
+    # --max_train_samples 10240 \
     # --max_eval_samples="1000"
