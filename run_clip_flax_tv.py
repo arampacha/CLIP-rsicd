@@ -79,6 +79,8 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
     is_tensorboard_available,
+    IntervalStrategy
+    
 )
 from transformers.testing_utils import CaptureLogger
 
@@ -198,6 +200,10 @@ class DataTrainingArguments:
     augment_images: Optional[bool] = field(
         default=False,
         metadata={ "help": "Augment input training images" }
+    )
+    captions_per_image: Optional[int] = field(
+        default=5,
+        metadata={"help": "Number of captions per image to use when creating train dataset."},
     )
 
     def __post_init__(self):
@@ -484,7 +490,7 @@ def main():
     train_dataset = ImageTextDataset(
         data_args.data_dir,
         data_args.train_file,
-        captions_per_image=2,
+        captions_per_image=data_args.captions_per_image,
         transform=preprocess,
     )
 
@@ -733,7 +739,7 @@ def main():
 
             # if (cur_step % (training_args.eval_steps * grad_accum_steps) == 0 and
             #     cur_step > 0 and 
-            #     training_args.eval_strategy == "steps"):
+            #     model_args.eval_strategy == "steps"):
             #     # ======================== Evaluating ==============================
             #     eval_metrics = []
             #     eval_steps = len(eval_dataset) // eval_batch_size
@@ -790,24 +796,24 @@ def main():
                 wandb.log({"eval_step":cur_step, **_metrics})
 
         # save checkpoint after each epoch
-        if jax.process_index() == 0 and training_args.save_strategy == "epoch":
+        if jax.process_index() == 0 and training_args.save_strategy == IntervalStrategy.EPOCH:
             save_dir = f"{training_args.output_dir}/ckpt-{epoch}"
             model.save_pretrained(
                 save_dir,
-                params=state.params,
+                params=unreplicate(state.params),
                 push_to_hub=False, # training_args.push_to_hub, # we don't push intermediate steps
                 commit_message=f"Saving weights and logs at epoch {epoch}",
                 repo_name_or_path=training_args.output_dir
             )
             if model_args.save_optimizer:
-                save_checkpoint(training_args.output_dir, jax_utils.unreplicate(state), cur_step, keep=training_args.save_total_limit, overwrite=True)
+                save_checkpoint(training_args.output_dir, unreplicate(state), cur_step, keep=training_args.save_total_limit, overwrite=True)
             if training_args.save_total_limit is not None:
                 rotate_checkpoints(training_args.output_dir, training_args.save_total_limit)
     
     # save model after training is over
     model.save_pretrained(
         training_args.output_dir,
-        params=state.params,
+        params=unreplicate(state.params),
         push_to_hub=training_args.push_to_hub,
         commit_message=f"Saving weights and logs at step {cur_step}",
         repo_name_or_path=training_args.output_dir
