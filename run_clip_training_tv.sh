@@ -32,5 +32,6 @@
     --run_name="testing-bs-128" \
     --save_strategy epoch \
     --save_optimizer="False" \
+    --augment_images \
     # --resume_from_checkpoint $HOME/gpt-neo-125M-code-clippy/ckpt_201 \
     # --max_eval_samples="1000"
