@@ -28,11 +28,11 @@
     --save_total_limit 2 \
     --gradient_accumulation_steps 1 \
     --report_to all \
-    --run_name="testing-5-captions" \
+    --run_name="testing-5-captions+img-augs" \
     --save_strategy epoch \
     --save_optimizer="False" \
     --captions_per_image 5 \
-    # --augment_images \
+    --augment_images \
     # --resume_from_checkpoint $HOME/gpt-neo-125M-code-clippy/ckpt_201 \
     # --max_train_samples 10240 \
     # --max_eval_samples="1000"
