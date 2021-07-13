@@ -55,7 +55,16 @@ from torchvision.transforms import (
     CenterCrop, 
     ConvertImageDtype, 
     Normalize, 
-    Resize
+    Resize,
+    RandomGrayscale,
+    RandomPerspective,
+    RandomRotation,
+    RandomInvert,
+    RandomSolarize,
+    RandomPosterize,
+    RandomAdjustSharpness,
+    RandomEqualize,
+    RandomErasing
 )
 from torchvision.transforms.functional import InterpolationMode
 
@@ -224,19 +233,26 @@ class Transform(torch.nn.Module):
     def __init__(self, image_size, augment_images):
         super().__init__()
         if augment_images:
-            crop_size = int(image_size * 0.8)
+            crop_size = int(image_size * 0.7)
             self.transforms = torch.nn.Sequential(
                 # image augmentation transforms
                 RandomCrop(crop_size),
-                ColorJitter(),
-                RandomHorizontalFlip(),
-                RandomVerticalFlip(),
-                RandomResizedCrop(crop_size, scale=(0.8, 1.2), ratio=(1.0, 1.0)),
-                # /image augmentation transforms
+                ColorJitter(0.5, 0.5, 0.5, 0.5),
+                RandomHorizontalFlip(p=1.0),
+                RandomVerticalFlip(p=1.0),
+                # RandomResizedCrop(crop_size, scale=(0.8, 1.2), ratio=(1.0, 1.0)),
+                RandomGrayscale(p=0.35),
+                RandomPerspective(distortion_scale=0.5, p=0.45),
+                RandomRotation(40.0, expand=True),
+                RandomInvert(p=0.35),
+                RandomSolarize(threshold=210.0, p=0.4),
+                RandomPosterize(bits=5, p=0.4),
+                RandomAdjustSharpness(3.0, p=0.1),
+                RandomEqualize(p=0.7),
                 Resize([image_size], interpolation=InterpolationMode.BICUBIC),
                 CenterCrop(image_size),
                 ConvertImageDtype(torch.float),
-                Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+                Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
             )
         else:
             self.transforms = torch.nn.Sequential(
