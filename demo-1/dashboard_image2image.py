@@ -9,7 +9,7 @@ from transformers import CLIPProcessor, FlaxCLIPModel
 
 
 BASELINE_MODEL = "openai/clip-vit-base-patch32"
-IMAGE_VECTOR_FILE = "../data/image-vectors.tsv"
+IMAGE_VECTOR_FILE = "/home/shared/data/vectors/test-baseline.tsv"
 IMAGES_DIR = "/home/shared/data/RSICD_images"
 
 
