@@ -1,6 +1,6 @@
 #! /bin/bash
 ./run_clip_flax_tv.py \
-    --output_dir $HOME/models/clip-rsicd \
+    --output_dir /home/shared/models/clip-rsicd \
     --model_name_or_path openai/clip-vit-base-patch32 \
     --dataset_name $HOME/CLIP-rsicd/rsicd.py \
     --data_dir /home/shared/data/RSICD_images \
@@ -16,7 +16,7 @@
     --warmup_steps="20" \
     --adam_beta1="0.9" \
     --adam_beta2="0.98" \
-    --weight_decay="0.01" \
+    --weight_decay="0.1" \
     --overwrite_output_dir \
     --num_train_epochs 5 \
     --logging_steps="2" \

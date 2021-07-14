@@ -218,10 +218,24 @@ class DataTrainingArguments:
                 assert extension in ["csv", "json", "txt", "jsonl"], "`validation_file` should be a csv, a json or a txt file."
 
 
+@dataclass
+class ImageAugmentationArguments:
+    """
+    Arguments for image augmentations configuration
+    """
+    random_horizontal_flip: Optional[float] = field(
+        default=0.5,
+        metadata={ "help": "Probability of applying random horizontal flip" }
+    )
+    random_vertical_flip: Optional[float] = field(
+        default=0.5,
+        metadata={ "help": "Probability of applying random vartical flip" }
+    )
+
 # We use torchvision for faster image pre-processing.
 # We need to ensure faster processing speed as it can become a bottleneck on TPU
 class Transform(torch.nn.Module):
-    def __init__(self, image_size, augment_images):
+    def __init__(self, image_size, augment_images, augmentation_args):
         super().__init__()
         if augment_images:
             crop_size = int(image_size * 0.8)
@@ -229,8 +243,8 @@ class Transform(torch.nn.Module):
                 # image augmentation transforms
                 RandomCrop(crop_size),
                 ColorJitter(),
-                RandomHorizontalFlip(),
-                RandomVerticalFlip(),
+                RandomHorizontalFlip(augmentation_args.random_horizontal_flip),
+                RandomVerticalFlip(augmentation_args.random_vertical_flip),
                 RandomResizedCrop(crop_size, scale=(0.8, 1.2), ratio=(1.0, 1.0)),
                 # /image augmentation transforms
                 Resize([image_size], interpolation=InterpolationMode.BICUBIC),
@@ -401,13 +415,13 @@ def main():
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, ImageAugmentationArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args, augmentatio_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
-        model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, augmentatio_args = parser.parse_args_into_dataclasses()
 
     if (
         os.path.exists(training_args.output_dir)
@@ -480,7 +494,7 @@ def main():
     config = model.config
     # Initialize torchvision transforms and jit them for faster processing
     # preprocess = Transform(config.vision_config.image_size)
-    preprocess = Transform(config.vision_config.image_size, data_args.augment_images)
+    preprocess = Transform(config.vision_config.image_size, data_args.augment_images, augmentation_args)
     preprocess = torch.jit.script(preprocess)
 
     eval_preprocess = Transform(config.vision_config.image_size, False)
