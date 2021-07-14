@@ -48,13 +48,15 @@ def app():
         inputs = processor(images=image, return_tensors="jax", padding=True)
         query_vec = model.get_image_features(**inputs)
         query_vec = np.asarray(query_vec)
-        ids, distances = index.knnQuery(query_vec, k=10)
+        ids, distances = index.knnQuery(query_vec, k=11)
         result_filenames = [filenames[id] for id in ids]
         images, captions = [], []
         for result_filename, score in zip(result_filenames, distances):
             images.append(
                 plt.imread(os.path.join(IMAGES_DIR, result_filename)))
-            captions.append("{:s} (score: {:.3f})".format(result_filename, score))
+            captions.append("{:s} (score: {:.3f})".format(result_filename, 1.0 - score))
+        images = images[1:]
+        captions = captions[1:]
         st.image(images[0:3], caption=captions[0:3])
         st.image(images[3:6], caption=captions[3:6])
         st.image(images[6:9], caption=captions[6:9])
