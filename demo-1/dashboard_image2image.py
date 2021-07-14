@@ -52,11 +52,13 @@ def app():
         result_filenames = [filenames[id] for id in ids]
         images, captions = [], []
         for result_filename, score in zip(result_filenames, distances):
+            if result_filename == image_file:
+                continue
             images.append(
                 plt.imread(os.path.join(IMAGES_DIR, result_filename)))
             captions.append("{:s} (score: {:.3f})".format(result_filename, 1.0 - score))
-        images = images[1:]
-        captions = captions[1:]
+        images = images[0:10]
+        captions = captions[0:10]
         st.image(images[0:3], caption=captions[0:3])
         st.image(images[3:6], caption=captions[3:6])
         st.image(images[6:9], caption=captions[6:9])
