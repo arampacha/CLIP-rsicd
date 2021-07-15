@@ -3,7 +3,7 @@
     --output_dir /home/shared/models/clip-rsicd \
     --model_name_or_path openai/clip-vit-base-patch32 \
     --dataset_name $HOME/CLIP-rsicd/rsicd.py \
-    --data_dir /home/shared/data/RSICD_images \
+    --data_dir /home/shared/data \
     --train_file /home/shared/data/train_rsicd.jsonl \
     --validation_file /home/shared/data/valid_rsicd.jsonl \
     --text_column_name captions \

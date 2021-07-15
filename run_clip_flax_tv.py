@@ -286,7 +286,7 @@ class ImageTextDataset(VisionDataset):
     def __init__(
         self,
         root: str,
-        file_path: str,
+        split: str, 
         captions_per_image=5,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
@@ -294,15 +294,16 @@ class ImageTextDataset(VisionDataset):
     ):
         super().__init__(root, transforms, transform, target_transform)
         self.root = root
-        with jsonlines.open(file_path, "r") as reader:
-
-            self.captions = []
-            self.image_paths = []
-
-            for example in reader:
-                self.captions.extend(example["captions"][:captions_per_image])
-                self.image_paths.extend([example["filename"]] * captions_per_image)
-
+        filepaths = Path(root).glob(f"{split}*.jsonl")
+        self.captions = []
+        self.image_paths = []
+        for count, filepath in enumerate(filepaths):
+            with jsonlines.open(filepath, "r") as reader:
+                for example in reader:
+                    self.captions.extend(example["captions"][:captions_per_image])
+                    self.image_paths.extend([example["filename"]] * captions_per_image)
+        print(f"{count+1} input files for {split} split found")
+    
     def _load_image(self, idx: int):
         path = f"{self.root}/{self.image_paths[idx]}"
         return read_image(path, mode=ImageReadMode.RGB)
@@ -419,9 +420,9 @@ def main():
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args, augmentatio_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args, augmentation_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
-        model_args, data_args, training_args, augmentatio_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, augmentation_args = parser.parse_args_into_dataclasses()
 
     if (
         os.path.exists(training_args.output_dir)
@@ -497,20 +498,20 @@ def main():
     preprocess = Transform(config.vision_config.image_size, data_args.augment_images, augmentation_args)
     preprocess = torch.jit.script(preprocess)
 
-    eval_preprocess = Transform(config.vision_config.image_size, False)
+    eval_preprocess = Transform(config.vision_config.image_size, False, augmentation_args)
     eval_preprocess = torch.jit.script(eval_preprocess)
 
     # Initialize the image-text dataset
     train_dataset = ImageTextDataset(
         data_args.data_dir,
-        data_args.train_file,
+        "train",
         captions_per_image=data_args.captions_per_image,
         transform=preprocess,
     )
 
     eval_dataset = ImageTextDataset(
         data_args.data_dir,
-        data_args.validation_file,
+        "valid",
         captions_per_image=1,
         transform=eval_preprocess,
     )
