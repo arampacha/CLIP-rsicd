@@ -10,10 +10,13 @@ from transformers import CLIPProcessor, FlaxCLIPModel
 
 
 DATA_DIR = "/home/shared/data"
-IMAGES_DIR = os.path.join(DATA_DIR, "RSICD_images")
+# IMAGES_DIR = os.path.join(DATA_DIR, "RSICD_images")
+IMAGES_DIR = os.path.join(DATA_DIR, "rsicd_images")
+
 CAPTIONS_FILE = os.path.join(DATA_DIR, "dataset_rsicd.json")
 
 BASELINE_MODEL = "openai/clip-vit-base-patch32"
+MODEL_DIR = "/home/shared/models/clip-rsicd"
 K_VALUES = [1, 3, 5, 10]
 SCORES_FILE = os.path.join("nbs", "results", "scores.tsv")
 
@@ -48,8 +51,12 @@ def get_model_basename(model_dir):
     if model_dir == "basename":
         return "basename"
     else:
-        return model_dir.split("/")[-1]
+        # return model_dir.split("/")[-1]
+        return model_dir.replace(MODEL_DIR + "/", "").replace("/", "-")
 
+
+
+print("Starting evaluation...")
 
 args = parse_arguments()
 
@@ -60,8 +67,8 @@ if args.model_dir == "baseline":
 else:
     # TODO: unfix later
     model = FlaxCLIPModel.from_pretrained(args.model_dir)
-    from flax.jax_utils import unreplicate
-    model.params = unreplicate(model.params)
+    # from flax.jax_utils import unreplicate
+    # model.params = unreplicate(model.params)
     processor = CLIPProcessor.from_pretrained(BASELINE_MODEL)
 
 print("Retrieving evaluation images...", end="")
