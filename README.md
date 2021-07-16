@@ -5,6 +5,9 @@
 
 A subset of the image test set had file names that indicated that the image belonged to one of 30 image categories in the RSICD dataset. Evaluation was done by comparing the CLIP encoding of each image with CLIP encodings of each of 30 synthetic caption sentences of the form `"An aerial photograph of {category}"`, and the checking to see that the correct category was found within the first k ranked predictions, for k=1, 3, 5, and 10.
 
+The `baseline` model represents the pre-trained `openai/clip-vit-base-patch32` CLIP model. This model was fine tuned using captions and images from the RSICD dataset, and resulted in significant boosts in performance, as shown below.
+
+
 | Model-name                               | k=1   | k=3   | k=5   | k=10  |
 | ---------------------------------------- | ----- | ----- | ----- | ----- |
 | baseline                                 | 0.572 | 0.745 | 0.837 | 0.939 |
