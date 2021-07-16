@@ -1,5 +1,6 @@
 # CLIP-rsicd
 
+This repository contains code for fine-tuning a [CLIP transformer model](https://huggingface.co/transformers/model_doc/clip.html#transformers.CLIPModel) with image caption pairs from the [RSICD dataset](https://github.com/201528014227051/RSICD_optimal). The work was done as part of the [Flax/JAX community week](https://github.com/huggingface/transformers/blob/master/examples/research_projects/jax-projects/README.md#quickstart-flax-and-jax) organized by Hugging Face and Google's Flax, JAX, and Cloud teams ([announcement](https://discuss.huggingface.co/t/open-to-the-community-community-week-using-jax-flax-for-nlp-cv/7104)).
 
 ## Evaluation Results
 
@@ -11,12 +12,13 @@ The `baseline` model represents the pre-trained `openai/clip-vit-base-patch32` C
 | Model-name                               | k=1   | k=3   | k=5   | k=10  |
 | ---------------------------------------- | ----- | ----- | ----- | ----- |
 | baseline                                 | 0.572 | 0.745 | 0.837 | 0.939 |
-| bs128x8-lr1e-4-augs-ckpt-2               | 0.819 | 0.950 | 0.974 | 0.994 |
-| bs128x8-lr1e-4-imgaugs-ckpt-2            | 0.812 | 0.942 | 0.970 | 0.991 |
-| bs128x8-lr1e-4-imgaugs-textaugs-ckpt-4   | **0.843** | 0.958 | **0.977** | 0.993 |
-| bs128x8-lr5e-5-imgaugs-textaugs-ckpt-8   | 0.831 | **0.959** | **0.977** | **0.994** |
-| bs128x8-lr5e-5-imgaugs-ckpt-4            | 0.746 | 0.906 | 0.956 | 0.989 |
-| bs128x8-lr5e-5-imgaugs-textaugs-2-ckpt-4 | 0.811 | 0.945 | 0.972 | 0.993 |
-| bs128x8-lr5e-5-imgaugs-textaugs-3-ckpt-5 | 0.823 | 0.946 | 0.971 | 0.992 |
-| bs128x8-lr5e-5-wd02-ckpt-4               | 0.820 | 0.946 | 0.965 | 0.990 |
+| bs128x8-lr1e-4-augs/ckpt-2               | 0.819 | 0.950 | 0.974 | 0.994 |
+| bs128x8-lr1e-4-imgaugs/ckpt-2            | 0.812 | 0.942 | 0.970 | 0.991 |
+| bs128x8-lr1e-4-imgaugs-textaugs/ckpt-4   | 0.843 | 0.958 | 0.977 | 0.993 |
+| bs128x8-lr5e-5-imgaugs-textaugs/ckpt-8   | 0.831 | 0.959 | 0.977 | 0.994 |
+| bs128x8-lr5e-5-imgaugs/ckpt-4            | 0.746 | 0.906 | 0.956 | 0.989 |
+| bs128x8-lr5e-5-imgaugs-textaugs-2/ckpt-4 | 0.811 | 0.945 | 0.972 | 0.993 |
+| bs128x8-lr5e-5-imgaugs-textaugs-3/ckpt-5 | 0.823 | 0.946 | 0.971 | 0.992 |
+| bs128x8-lr5e-5-wd02/ckpt-4               | 0.820 | 0.946 | 0.965 | 0.990 |
+| bs128x8-lr5e-6-adam/ckpt-1               | **0.883** | **0.968** | **0.982** | **0.998** |
 
