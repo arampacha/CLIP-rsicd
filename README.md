@@ -7,8 +7,8 @@ This repository contains code for fine-tuning a [CLIP transformer model](https:/
 
 We have two versions of our model available for use on HuggingFace Models.
 
-* [flat-community/clip-rsicd (version 1)](https://huggingface.co/flax-community/clip-rsicd)
-* [flat-community/clip-rsicd-v2 (version 2)](https://huggingface.co/flax-community/clip-rsicd-v2)
+* [flax-community/clip-rsicd (version 1)](https://huggingface.co/flax-community/clip-rsicd)
+* [flax-community/clip-rsicd-v2 (version 2)](https://huggingface.co/flax-community/clip-rsicd-v2)
 
 corresponding to models `bs128x8-lr1e-4-imgaugs-textaugs/ckpt-4` and `bs128x8-lr5e-6-adam/ckpt-1` (see Evaluation below). Both models can be used in the same way as the original CLIP model. Please refer to the [Hugging Face documentation for CLIPModel](https://huggingface.co/transformers/model_doc/clip.html#clipmodel) for details.
 
