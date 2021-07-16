@@ -198,7 +198,11 @@ class DataTrainingArguments:
             metadata={"help": "Column containing main text data."},
     )
     augment_images: Optional[bool] = field(
-        default=False,
+        default=True,
+        metadata={ "help": "Augment input training images" }
+    )
+    augment_captions: Optional[bool] = field(
+        default=True,
         metadata={ "help": "Augment input training images" }
     )
     captions_per_image: Optional[int] = field(
@@ -287,14 +291,19 @@ class ImageTextDataset(VisionDataset):
         self,
         root: str,
         split: str, 
-        captions_per_image=5,
+        captions_per_image:int = 5,
+        augment_captions:bool = True,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
         transforms: Optional[Callable] = None,
     ):
         super().__init__(root, transforms, transform, target_transform)
         self.root = root
-        filepaths = Path(root).glob(f"{split}*.jsonl")
+        if augment_captions:
+            prefix = "textaug_"
+        else:
+            prefix = ""
+        filepaths = Path(root).glob(f"{prefix}{split}*.jsonl")
         self.captions = []
         self.image_paths = []
         for count, filepath in enumerate(filepaths):
@@ -506,6 +515,7 @@ def main():
         data_args.data_dir,
         "train",
         captions_per_image=data_args.captions_per_image,
+        augment_captions=data_args.augment_captions,
         transform=preprocess,
     )
 
@@ -513,6 +523,7 @@ def main():
         data_args.data_dir,
         "valid",
         captions_per_image=1,
+        augment_captions=False, 
         transform=eval_preprocess,
     )
 
@@ -538,7 +549,7 @@ def main():
     def collate_fn(examples):
         pixel_values = torch.stack([example[0] for example in examples]).numpy()
         captions = [example[1] for example in examples]
-        inputs = tokenizer(captions, max_length=64, padding="max_length", return_tensors="np")
+        inputs = tokenizer(captions, max_length=32, padding="max_length", return_tensors="np", truncation=True)
 
         batch = {
             "pixel_values": pixel_values,
@@ -581,8 +592,12 @@ def main():
     if jax.process_index() == 0 and has_wandb and ("wandb" in training_args.report_to):
         try:
             import wandb
+            if training_args.run_name is None:
+                run_name = training_args.output_dir.split("/")[-1]
+            else:
+                run_name = training_args.run_name
             wandb.init(
-                name=training_args.run_name,
+                name=run_name,
                 entity="wandb", 
                 project="hf-flax-clip-rsicd",
                 sync_tensorboard=True
@@ -637,6 +652,10 @@ def main():
             eps=training_args.adam_epsilon,
             weight_decay=training_args.weight_decay,
             mask=decay_mask_fn,
+        )
+        optimizer = optax.chain(
+            optax.clip_by_global_norm(1.),
+            optimizer
         )
     if training_args.gradient_accumulation_steps > 1:
         optimizer = optax.MultiSteps(optimizer, training_args.gradient_accumulation_steps)
@@ -730,6 +749,7 @@ def main():
                 continue
             
             batch = shard(make_batch(batch))
+            
             state, train_metric = p_train_step(state, batch)
             train_metrics.append(train_metric)
             if step % grad_accum_steps == 0:

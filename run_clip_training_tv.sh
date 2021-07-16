@@ -1,6 +1,6 @@
 #! /bin/bash
 ./run_clip_flax_tv.py \
-    --output_dir /home/shared/models/clip-rsicd/bs128x8-lr1e-4-augs \
+    --output_dir /home/shared/models/clip-rsicd/bs128x8-lr1e-5-adam-bs64 \
     --model_name_or_path openai/clip-vit-base-patch32 \
     --dataset_name $HOME/CLIP-rsicd/rsicd.py \
     --data_dir /home/shared/data \
@@ -8,11 +8,11 @@
     --validation_file /home/shared/data/valid_rsicd.jsonl \
     --text_column_name captions \
     --do_train --do_eval \
-    --per_device_train_batch_size="128" \
-    --per_device_eval_batch_size="128" \
+    --per_device_train_batch_size="64" \
+    --per_device_eval_batch_size="32" \
     --preprocessing_num_workers="16" \
-    --learning_rate="1e-4" \
-    --adafactor \
+    --learning_rate="1e-5" \
+    --adafactor false \
     --warmup_steps="50" \
     --adam_beta1="0.9" \
     --adam_beta2="0.98" \
@@ -28,11 +28,12 @@
     --save_total_limit 10 \
     --gradient_accumulation_steps 1 \
     --report_to all \
-    --run_name="bs128x8-lr1e-4-augs" \
     --save_strategy epoch \
     --save_optimizer="False" \
     --captions_per_image 5 \
-    --augment_images \
+    --augment_images true \
+    --augment_captions true
+    # --run_name="test_run" \
     # --resume_from_checkpoint $HOME/gpt-neo-125M-code-clippy/ckpt_201 \
     # --max_train_samples 10240 \
     # --max_eval_samples="1000"
