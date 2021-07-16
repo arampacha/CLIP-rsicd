@@ -8,8 +8,12 @@ from transformers import CLIPProcessor, FlaxCLIPModel
 
 
 BASELINE_MODEL = "openai/clip-vit-base-patch32"
-IMAGE_VECTOR_FILE = "/home/shared/data/vectors/test-baseline.tsv"
-IMAGES_DIR = "/home/shared/data/RSICD_images"
+MODEL_PATH = "/home/shared/models/clip-rsicd/bs128x8-lr5e-6-adam/ckpt-1"
+
+# IMAGE_VECTOR_FILE = "/home/shared/data/vectors/test-baseline.tsv"
+IMAGE_VECTOR_FILE = "/home/shared/data/vectors/test-bs128x8-lr5e-6-adam-ckpt-1.tsv"
+
+IMAGES_DIR = "/home/shared/data/rsicd_images"
 
 
 @st.cache(allow_output_mutation=True)
@@ -31,7 +35,7 @@ def load_index():
 
 @st.cache(allow_output_mutation=True)
 def load_model():
-    model = FlaxCLIPModel.from_pretrained(BASELINE_MODEL)
+    model = FlaxCLIPModel.from_pretrained(MODEL_PATH)
     processor = CLIPProcessor.from_pretrained(BASELINE_MODEL)
     return model, processor
 
@@ -41,6 +45,21 @@ def app():
     model, processor = load_model()
 
     st.title("Text to Image Retrieval")
+    st.markdown("""
+        The CLIP model from OpenAI is trained in a self-supervised manner using 
+        contrastive learning to project images and caption text onto a common 
+        embedding space. We have fine-tuned the model using the RSICD dataset
+        (10k images and ~50k captions from the remote sensing domain).
+        
+        This demo shows the image to text retrieval capabilities of this model, i.e., 
+        given a text query, we use our fine-tuned CLIP model to project the text query 
+        to the image/caption embedding space and search for nearby images (by 
+        cosine similarity) in this space.
+        
+        Our fine-tuned CLIP model was previously used to generate image vectors for 
+        our demo, and NMSLib was used for fast vector access.
+    """)
+
     query = st.text_input("Text Query:")
     if st.button("Query"):
         inputs = processor(text=[query], images=None, return_tensors="jax", padding=True)
