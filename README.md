@@ -2,6 +2,37 @@
 
 This repository contains code for fine-tuning a [CLIP transformer model](https://huggingface.co/transformers/model_doc/clip.html#transformers.CLIPModel) with image caption pairs from the [RSICD dataset](https://github.com/201528014227051/RSICD_optimal). The work was done as part of the [Flax/JAX community week](https://github.com/huggingface/transformers/blob/master/examples/research_projects/jax-projects/README.md#quickstart-flax-and-jax) organized by Hugging Face and Google's Flax, JAX, and Cloud teams ([announcement](https://discuss.huggingface.co/t/open-to-the-community-community-week-using-jax-flax-for-nlp-cv/7104)).
 
+
+## Our model
+
+We have two versions of our model available for use on HuggingFace Models.
+
+* [flat-community/clip-rsicd (version 1)](https://huggingface.co/flax-community/clip-rsicd)
+* [flat-community/clip-rsicd-v2 (version 2)](https://huggingface.co/flax-community/clip-rsicd-v2)
+
+corresponding to models `bs128x8-lr1e-4-imgaugs-textaugs/ckpt-4` and `bs128x8-lr5e-6-adam/ckpt-1` (see Evaluation below). Both models can be used in the same way as the original CLIP model. Please refer to the [Hugging Face documentation for CLIPModel](https://huggingface.co/transformers/model_doc/clip.html#clipmodel) for details.
+
+
+## Demo
+
+You can try out our model using text to image and image to image retrieval. [Check out Demo](https://huggingface.co/spaces/sujitpal/clip-rsicd-demo).
+
+
+## Team
+
+* Arto (@arampacha)
+* Dev Vidhani (@devvidhani)
+* Goutham Venkatesh (@goutham794)
+* Mayank Bhaskar (@cataluna84)
+* Ritobroto Ghosh (@ghosh-r)
+* Sujit Pal (@sujitpal)
+
+
+## Augmentation Strategy
+
+Because our dataset was fairly small, we used both image augmentation and text augmentation to fine-tune our model. Image augmentation was done inline using built in transforms from Pytorch's Torchvision package. Text augmentations were done offline via backtranslation.
+
+
 ## Evaluation Results
 
 A subset of the image test set had file names that indicated that the image belonged to one of 30 image categories in the RSICD dataset. Evaluation was done by comparing the CLIP encoding of each image with CLIP encodings of each of 30 synthetic caption sentences of the form `"An aerial photograph of {category}"`, and the checking to see that the correct category was found within the first k ranked predictions, for k=1, 3, 5, and 10.
