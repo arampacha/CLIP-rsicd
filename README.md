@@ -30,7 +30,7 @@ You can try out our model using text to image and image to image retrieval. [Che
 
 ## Augmentation Strategy
 
-Because our dataset was fairly small, we used both image augmentation and text augmentation to fine-tune our model. Image augmentation was done inline using built in transforms from Pytorch's Torchvision package. Text augmentations were done offline via backtranslation.
+Because our dataset was fairly small, we used both image augmentation and text augmentation to fine-tune our model. Image augmentation was done inline using built in transforms from Pytorch's Torchvision package. Text augmentations were done offline via backtranslation using the [ROMANCE models from Helsinki-NLP](https://huggingface.co/Helsinki-NLP/opus-mt-en-ROMANCE).
 
 
 ## Evaluation Results
