@@ -1,7 +1,10 @@
-from transformers import CLIPProcessor
 #!/usr/bin/env python
+"""
+The utility sript saves copy of pretrained CLIPProcessor to `model_dir`
+"""
+
 import argparse
-from transformers.data import processors
+from transformers import CLIPProcessor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model_dir", help="Path to directory containing config.json and flax_model.msgpack")

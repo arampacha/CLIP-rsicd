@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+The utility script converts `flax_model.msgpack` to `pytorch_model.bin` in `model_dir`
+"""
 import argparse
 
 from transformers import AutoModel
