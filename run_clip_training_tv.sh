@@ -1,6 +1,6 @@
 #! /bin/bash
 ./run_clip_flax_tv.py \
-    --output_dir /home/shared/models/clip-rsicd/bs128x8-lr1e-5-adam-bs64 \
+    --output_dir /home/shared/models/clip-rsicd/bs256x8-lr5e-6-adam \
     --model_name_or_path openai/clip-vit-base-patch32 \
     --dataset_name $HOME/CLIP-rsicd/rsicd.py \
     --data_dir /home/shared/data \
@@ -8,14 +8,13 @@
     --validation_file /home/shared/data/valid_rsicd.jsonl \
     --text_column_name captions \
     --do_train --do_eval \
-    --per_device_train_batch_size="64" \
-    --per_device_eval_batch_size="32" \
+    --per_device_train_batch_size="256" \
     --preprocessing_num_workers="16" \
-    --learning_rate="1e-5" \
+    --learning_rate="2e-6" \
     --adafactor false \
     --warmup_steps="50" \
     --adam_beta1="0.9" \
-    --adam_beta2="0.98" \
+    --adam_beta2="0.95" \
     --weight_decay="0.1" \
     --overwrite_output_dir \
     --num_train_epochs 10 \
@@ -25,7 +24,7 @@
     --dtype="bfloat16" \
     --skip_memory_metrics="True" \
     --save_steps="200" \
-    --save_total_limit 10 \
+    --save_total_limit 5 \
     --gradient_accumulation_steps 1 \
     --report_to all \
     --save_strategy epoch \
