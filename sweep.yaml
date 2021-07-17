@@ -1,0 +1,11 @@
+program: run_clip_flax_tv.py
+method: grid
+metric:
+  name: best_eval_loss
+  goal: minimize
+parameter:
+  learning_rate:
+    values: [1e-5, 2e-5, 5e-5, 1e-4, 3e-4]
+  adafactor:
+    values: [true, false]
+  
