@@ -13,6 +13,11 @@ We have two versions of our model available for use on HuggingFace Models.
 corresponding to models `bs128x8-lr1e-4-imgaugs-textaugs/ckpt-4` and `bs128x8-lr5e-6-adam/ckpt-1` (see Evaluation below). Both models can be used in the same way as the original CLIP model. Please refer to the [Hugging Face documentation for CLIPModel](https://huggingface.co/transformers/model_doc/clip.html#clipmodel) for details.
 
 
+## Training
+
+The model is trained using Flax/JAX on TPU-v3-8. The training can be reproduced using this [colab notebook](https://colab.research.google.com/github/arampacha/CLIP-rsicd/blob/master/nbs/Finetuning_CLIP_with_HF_and_jax.ipynb).
+
+
 ## Demo
 
 You can try out our model using text to image and image to image retrieval. [Check out Demo](https://huggingface.co/spaces/sujitpal/clip-rsicd-demo).
