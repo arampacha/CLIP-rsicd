@@ -35,7 +35,7 @@ You can try out our model using text to image and image to image retrieval. [Che
 
 ## Augmentation Strategy
 
-Because our dataset was fairly small, we used both image augmentation and text augmentation to fine-tune our model. Image augmentation was done inline using built in transforms from Pytorch's Torchvision package. Text augmentations were done offline via backtranslation using the [ROMANCE models from Helsinki-NLP](https://huggingface.co/Helsinki-NLP/opus-mt-en-ROMANCE). Our Weights & Biases report describes the [impact of image and text augmentations on the training regime](https://wandb.ai/wandb/hf-flax-clip-rsicd/reports/Fine-tuning-CLIP-on-RSICD--Vmlldzo4NzMyOTg).
+Because our dataset was fairly small, we used both image augmentation and text augmentation to fine-tune our model. Image augmentation was done inline using built in transforms from Pytorch's Torchvision package. Text augmentations were done offline via backtranslation using the [ROMANCE models from Helsinki-NLP](https://huggingface.co/Helsinki-NLP/opus-mt-en-ROMANCE). The [impact of image and text augmentations on the training regime](https://wandb.ai/wandb/hf-flax-clip-rsicd/reports/Fine-tuning-CLIP-on-RSICD--Vmlldzo4NzMyOTg) is described in our report of the fine tuning exercise on Weights and Biases.
 
 
 ## Evaluation Results
