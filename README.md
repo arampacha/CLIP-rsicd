@@ -13,6 +13,11 @@ We have two versions of our model available for use on HuggingFace Models.
 corresponding to models `bs128x8-lr1e-4-imgaugs-textaugs/ckpt-4` and `bs128x8-lr5e-6-adam/ckpt-1` (see Evaluation below). Both models can be used in the same way as the original CLIP model. Please refer to the [Hugging Face documentation for CLIPModel](https://huggingface.co/transformers/model_doc/clip.html#clipmodel) for details.
 
 
+## Training
+
+The model is trained using Flax/JAX on TPU-v3-8. The training can be reproduced using this [colab notebook](https://colab.research.google.com/github/arampacha/CLIP-rsicd/blob/master/nbs/Finetuning_CLIP_with_HF_and_jax.ipynb).
+
+
 ## Demo
 
 You can try out our model using text to image and image to image retrieval. [Check out Demo](https://huggingface.co/spaces/sujitpal/clip-rsicd-demo).
@@ -51,5 +56,5 @@ The `baseline` model represents the pre-trained `openai/clip-vit-base-patch32` C
 | bs128x8-lr5e-5-imgaugs-textaugs-2/ckpt-4 | 0.811 | 0.945 | 0.972 | 0.993 |
 | bs128x8-lr5e-5-imgaugs-textaugs-3/ckpt-5 | 0.823 | 0.946 | 0.971 | 0.992 |
 | bs128x8-lr5e-5-wd02/ckpt-4               | 0.820 | 0.946 | 0.965 | 0.990 |
-| bs128x8-lr5e-6-adam/ckpt-1               | **0.883** | **0.968** | **0.982** | **0.998** |
+| [bs128x8-lr5e-6-adam/ckpt-1]((https://huggingface.co/flax-community/clip-rsicd-v2)) | **0.883** | **0.968** | **0.982** | **0.998** |
 
