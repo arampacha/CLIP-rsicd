@@ -50,6 +50,10 @@ We have provided a [Colab Notebook](https://colab.research.google.com/github/ara
 
 The Remote Sensing Image Caption Dataset ([RSICD](https://github.com/201528014227051/RSICD_optimal)) is a collection of about 10,000 images collected from Google Earth, Baidu Map, MapABC, and Tianditu and provided to the research community for advancement of remote sensing captioning via [Exploring Models and Data for Remote Sensing Image Caption Generation](https://arxiv.org/abs/1712.07835) (Lu et al, 2017). The images are provided as (224, 224) RGB images at various resolutions. Each image has upto 5 captions associated with it.
 
+The [UCM dataset](https://mega.nz/folder/wCpSzSoS#RXzIlrv--TDt3ENZdKN8JA) is based on the UC Merced Land Use Dataset. It consists of 2100 images belonging to 21 classes (100 images per class). The dataset provides 5 captions for each image. The images are (256, 256) RGB images with pixel resolution of 0.3048m.
+
+The [Sydney dataset](https://mega.nz/folder/pG4yTYYA#4c4buNFLibryZnlujsrwEQ) contains images of Sydney, Australia from Google Earth. The dataset consists of 613 images belonging to 7 classes. Images are (500, 500) RGB images with pixel resolution 0.5m. The dataset provides 5 captions for each image.
+
 ### Augmentation Strategy
 
 Because our dataset was fairly small, we used both image augmentation and text augmentation to regularize our dataset and prevent overfitting.
