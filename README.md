@@ -48,7 +48,7 @@ We have provided a [Colab Notebook](https://colab.research.google.com/github/ara
 
 ### Dataset
 
-The Remote Sensing Image Caption Dataset ([RSICD](https://github.com/201528014227051/RSICD_optimal)) is a collection of about 10,000 images collected from Google Earth, Baidu Map, MapABC, and Tianditu and provided to the public for advancement of remote sensing captioning via [Exploring Models and Data for Remote Sensing Image Caption Generation](https://arxiv.org/abs/1712.07835) (Lu et al, 2017). The images are provided as (224, 224) RGB images at various resolutions. Each image has upto 5 captions associated with it.
+The Remote Sensing Image Caption Dataset ([RSICD](https://github.com/201528014227051/RSICD_optimal)) is a collection of about 10,000 images collected from Google Earth, Baidu Map, MapABC, and Tianditu and provided to the research community for advancement of remote sensing captioning via [Exploring Models and Data for Remote Sensing Image Caption Generation](https://arxiv.org/abs/1712.07835) (Lu et al, 2017). The images are provided as (224, 224) RGB images at various resolutions. Each image has upto 5 captions associated with it.
 
 ### Augmentation Strategy
 
