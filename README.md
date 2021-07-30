@@ -94,7 +94,7 @@ _1 - our best model, 2 - our second best model_
 * Dev Vidhani (@devvidhani)
 * Goutham Venkatesh (@goutham794)
 * Mayank Bhaskar (@cataluna84)
-* Ritobroto Ghosh (@ghosh-r)
+* Ritobrata Ghosh (@ghosh-r)
 * Sujit Pal (@sujitpal)
 
 
