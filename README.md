@@ -90,7 +90,7 @@ _1 - our best model, 2 - our second best model_
 
 ## Team
 
-* Arto (@arampacha)
+* Artashes Arutiunian (@arampacha)
 * Dev Vidhani (@devvidhani)
 * Goutham Venkatesh (@goutham794)
 * Mayank Bhaskar (@cataluna84)
