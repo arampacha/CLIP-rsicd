@@ -97,7 +97,7 @@ class ImageTextDataset(VisionDataset):
                 for example in reader:
                     self.captions.extend(example["captions"][:captions_per_image])
                     self.image_paths.extend([example["filename"]] * captions_per_image)
-        print(f"{count+1} input files for {split} split found")
+            print(f"{count+1} input files for {split} split found")
     
     def _load_image(self, idx: int):
         path = f"{self.root}/{self.image_paths[idx]}"
