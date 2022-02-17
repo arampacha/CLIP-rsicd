@@ -60,11 +60,14 @@ class ImageTextDataset(VisionDataset):
     Dtaset for loading image-text data for tasks like CLIP training, Image Captioning.
 
     Args:
-        root: (string): The root path where the dataset is stored
-        file_path: (string): Path to the file containing the image_paths and associated captions.
+        root: (string): The root path where the dataset is stored.
             The expected format is jsonlines where each line is a json object containing to keys.
             `filename`: The path to the image.
             `captions`: An `array` of captions.
+        split: (string): Dataset split name. Is used for parsing jsonl files from `root` folder.
+        captions_per_image: (int): number of captions per image to use. Defaults to 5.
+        augment_captions: (bool): If true the jsonl files with `textaug_` prefix are selected from root
+            folder. 
         transform (callable, optional): A function/transform that  takes in an PIL image
             and returns a transformed version. E.g, ``transforms.ToTensor``
         target_transform (callable, optional): A function/transform that takes in the
@@ -90,6 +93,13 @@ class ImageTextDataset(VisionDataset):
         else:
             prefix = ""
         filepaths = Path(root).glob(f"{prefix}{split}*.jsonl")
+        fps_empty_msg = f"""\
+        The `filepaths` is empty. Please make sure that `root` folder contains jsonl files
+        named properly: [textaug_]{split}*.jsonl.
+        `textaug_` prefix is expected if `augment_captions` is `True`.
+        """
+        assert len(list(filepaths)) > 0, fps_empty_msg
+        
         self.captions = []
         self.image_paths = []
         for count, filepath in enumerate(filepaths):
