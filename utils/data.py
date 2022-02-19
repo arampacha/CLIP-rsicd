@@ -92,13 +92,13 @@ class ImageTextDataset(VisionDataset):
             prefix = "textaug_"
         else:
             prefix = ""
-        filepaths = Path(root).glob(f"{prefix}{split}*.jsonl")
+        filepaths = list(Path(root).glob(f"{prefix}{split}*.jsonl"))
         fps_empty_msg = f"""\
         The `filepaths` is empty. Please make sure that `root` folder contains jsonl files
         named properly: [textaug_]{split}*.jsonl.
         `textaug_` prefix is expected if `augment_captions` is `True`.
         """
-        assert len(list(filepaths)) > 0, fps_empty_msg
+        assert len(filepaths) > 0, fps_empty_msg
         
         self.captions = []
         self.image_paths = []
