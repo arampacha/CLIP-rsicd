@@ -90,11 +90,11 @@ _1 - our best model, 2 - our second best model_
 
 ## Team
 
-* Artashes Arutiunian (@arampacha)
-* Dev Vidhani (@devvidhani)
-* Goutham Venkatesh (@goutham794)
-* Mayank Bhaskar (@cataluna84)
-* Ritobrata Ghosh (@ghosh-r)
-* Sujit Pal (@sujitpal)
+* Artashes Arutiunian ([@arampacha](https://github.com/arampacha))
+* Dev Vidhani ([@devvidhani](https://github.com/devvidhani))
+* Goutham Venkatesh ([@goutham794](https://github.com/goutham794))
+* Mayank Bhaskar ([@cataluna84](https://github.com/cataluna84))
+* Ritobrata Ghosh ([@ritog](https://github.com/ritog))
+* Sujit Pal ([@sujitpal](https://github.com/sujitpal))
 
 
